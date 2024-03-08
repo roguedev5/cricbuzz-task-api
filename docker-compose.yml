@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  server:
+    build: 
+      context: .
+      dockerfile: dockerfile-dev
+    depends_on:
+      - mongo
+    command: [
+      "npm",
+      "run",
+      "dev"
+    ]
+    ports:
+      - 7000:7000
+    environment:
+      - NODE_ENV=development
+      - SERVER_PORT=7000
+      - DB_USER=root
+      - DB_NAME=dev
+      - DB_PWD=rootpassword
+      - DB_HOST=mongo
+      - DB_PORT=27017
+      - S3_ACCESS_KEY_ID=nonRootUser
+      - S3_SECRET_ACCESS_KEY=nonRootPassword
+      - S3_BUCKET=uploads
+      - S3_PROTOCOL=http
+      - S3_HOST=fileHosting
+      - S3_PORT=9000
+      - S3_REGION=us-east-1
+    volumes:
+      - ./server:/home/node/api/server
+
+  mongo:
+    image: mongo:latest
+    command: mongod --quiet
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=rootpassword
+      - MONGODB_DATABASE=dev
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data_container:/data/db
+
+  mongo-express:
+    image: mongo-express
+    depends_on:
+      - mongo
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=rootpassword
+    ports:
+      - 8081:8081
+
+  fileHosting:
+    image: minio/minio:RELEASE.2023-05-04T21-44-30Z
+    ports:
+      - ${S3_PORT:-9000}:9000
+      - ${MINIO_CONSOLE_PORT:-9001}:9001
+    volumes:
+      - minio_storage:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-superSecretAdminPassword}
+    command: server --console-address ":${MINIO_CONSOLE_PORT:-9001}" /data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  createbucket:
+    image: minio/mc:RELEASE.2023-05-04T18-10-16Z
+    depends_on:
+      - fileHosting
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add server http://fileHosting:${S3_PORT:-9000} ${MINIO_ROOT_USER:-admin} ${MINIO_ROOT_PASSWORD:-superSecretAdminPassword};
+      /usr/bin/mc admin user add server/ ${S3_ACCESS_KEY_ID:-nonRootUser} ${S3_SECRET_ACCESS_KEY:-nonRootPassword};
+      /usr/bin/mc admin user enable server/ ${S3_ACCESS_KEY_ID:-nonRootUser};
+      /usr/bin/mc mb server/${S3_BUCKET:-uploads};
+      /usr/bin/mc admin policy attach server/ readwrite --user=${S3_ACCESS_KEY_ID:-nonRootUser};
+      exit 0;
+      "
+  swagger:
+    image: swaggerapi/swagger-ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      SWAGGER_JSON: /api-docs/swagger.yaml
+      BASE_URL: /cricbuzz-api
+    volumes:
+      - ./swagger.yaml:/api-docs/swagger.yaml
+
+volumes:
+  mongodb_data_container:
+  minio_storage:
+   

@@ -1,0 +1,185 @@
+openapi: 3.1.0
+info:
+  title: Cricbuzz API
+  description: This is a documentation of Cricbuzz API using OpenAPI 3.1.0
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:7000
+    description: Local development server
+
+paths:
+  /latest:
+    get:
+      tags:
+        - Latest
+      summary: Lists latest news and videos
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+  /getvideos:
+    get:
+      tags:
+        - Videos
+      summary: Lists videos
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: Number of items to return per page
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+  /deletevideo:
+    delete:
+      tags:
+        - Videos
+      summary: Deletes a video
+      parameters:
+        - name: id
+          in: query
+          description: ID of the video to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+  /latestvideos:
+    get:
+      tags:
+        - Videos
+      summary: Lists latest 4 videos
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+  /postvideo:
+    post:
+      tags:
+        - Videos
+      summary: Inserts a video
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                video:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+  /getnews:
+    get:
+      tags:
+        - News
+      summary: Lists news
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: Number of items to return per page
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+  /deletenews:
+    delete:
+      tags:
+        - News
+      summary: Deletes a news
+      parameters:
+        - name: id
+          in: query
+          description: ID of the news to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+  /latestnews:
+    get:
+      tags:
+        - News
+      summary: Lists latest 4 news
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+  /postnews:
+    post:
+      tags:
+        - News
+      summary: Inserts a news
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: The title of the news
+                news:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      subTitle:
+                        type: string
+                        description: The title of the news article
+                      content:
+                        type: string
+                        description: The content of the news article
+                  description: An array of news articles
+              required:
+                - title
+                - news
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
